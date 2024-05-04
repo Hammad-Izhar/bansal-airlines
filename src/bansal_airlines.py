@@ -93,9 +93,9 @@ class L2Cache(Cache):
         self.mem_side = bus.cpu_side_ports
 
 valid_cpu = {
-    # "X86DerivO3CPU": X86O3CPU,
-    "ArmDerivO3CPU": ArmO3CPU,
-    "RiscvO3CPU": RiscvO3CPU,
+    # "RiscvO3CPU": RiscvO3CPU,
+    # "X86O3CPU": X86O3CPU,
+    "ArmO3CPU": ArmO3CPU,
 }
 
 thispath = os.path.dirname(os.path.realpath(__file__))
@@ -103,15 +103,31 @@ thispath = os.path.dirname(os.path.realpath(__file__))
 default_binary = os.path.join(
     thispath,
     "../../",
-    # "tests/test-progs/bansal_airlines/hello_riscv64",
-    # "tests/test-progs/isa-assignment/leaky-prog",
-    # "tests/test-progs/bansal_airlines/hello_cheat_riscv564",
+    # "tests/test-progs/hello/bin/arm/linux/hello",
+    # "tests/test-progs/hello/bin/x86/linux/hello",
+    
+    # "tests/test-progs/bansal_airlines/hello/hello_arm64",
+    # "tests/test-progs/bansal_airlines/hello/hello_x64",
+    # "tests/test-progs/bansal_airlines/hello/hello_riscv64",
+    
+    "tests/test-progs/bansal_airlines/row-major/row-major_arm64",
+    # "tests/test-progs/bansal_airlines/row-major/row-major_x64",
+    # "tests/test-progs/bansal_airlines/row-major/row-major_riscv64",
+    
+    # "tests/test-progs/bansal_airlines/column-major/column-major_arm64",
+    # "tests/test-progs/bansal_airlines/column-major/column-major_x64",
+    # "tests/test-progs/bansal_airlines/column-major/column-major_riscv64",
+    
+    # "tests/test-progs/bansal_airlines/strassen/strassen_arm64",
+    # "tests/test-progs/bansal_airlines/strassen/strassen_x64",
+    # "tests/test-progs/bansal_airlines/strassen/strassen_riscv64",
 )
 
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--binary", type=str, default=default_binary)
 parser.add_argument("--cpu")
+parser.add_argument("--argv", type=int, default=1)
 
 
 args = parser.parse_args()
@@ -125,6 +141,9 @@ print("===============")
 print("Binary: ", args.binary)
 print("===============")
 
+print("===============")
+print("Argv: ", args.argv)
+print("===============")
 
 
 system = System()
@@ -154,6 +173,10 @@ system.l2cache.connectCPUSideBus(system.l1_to_l2)
 system.l2cache.connectMemSideBus(system.membus)
 
 system.cpu.createInterruptController()
+if args.cpu in ("X86O3CPU"):
+    system.cpu.interrupts[0].pio = system.membus.mem_side_ports
+    system.cpu.interrupts[0].int_master = system.membus.cpu_side_ports
+    system.cpu.interrupts[0].int_slave = system.membus.mem_side_ports
 
 # Create a DDR3 memory controller
 system.mem_ctrl = MemCtrl()
@@ -166,7 +189,8 @@ system.system_port = system.membus.cpu_side_ports
 
 
 process = Process()
-process.cmd = [args.binary]
+
+process.cmd = [args.binary, args.argv]
 system.cpu.workload = process
 system.cpu.createThreads()
 
